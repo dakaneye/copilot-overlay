@@ -1,0 +1,143 @@
+{
+  "amazon.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/gp/buy/", "/checkout/", "/cart/"],
+      "domIndicators": ["#subtotals-marketplace-table", ".order-summary", "#sc-buy-box"]
+    },
+    "subtotal": {
+      "selectors": [
+        ".grand-total-price",
+        "#sc-subtotal-amount-activecart",
+        "[data-name='Active Items Subtotal']"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "target.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/cart", "/checkout"],
+      "domIndicators": ["[data-test='cart-summary']", "[data-test='orderSummary']"]
+    },
+    "subtotal": {
+      "selectors": [
+        "[data-test='cart-summary-total']",
+        "[data-test='total']"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "walmart.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/cart", "/checkout"],
+      "domIndicators": ["[data-testid='cart-summary']", ".cart-summary"]
+    },
+    "subtotal": {
+      "selectors": [
+        "[data-testid='subtotal-value']",
+        ".price-characteristic"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "bestbuy.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/cart", "/checkout"],
+      "domIndicators": [".order-summary", ".cart-summary"]
+    },
+    "subtotal": {
+      "selectors": [
+        ".order-summary__total .cash-money",
+        ".price-summary__total-value"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "ubereats.com": {
+    "category": "Food & Drink",
+    "checkout": {
+      "urlPatterns": ["/checkout", "/cart"],
+      "domIndicators": ["[data-testid='cart-container']", "[data-testid='checkout']"]
+    },
+    "subtotal": {
+      "selectors": [
+        "[data-testid='total-amount']",
+        "[data-testid='cart-total']"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "doordash.com": {
+    "category": "Food & Drink",
+    "checkout": {
+      "urlPatterns": ["/checkout", "/cart"],
+      "domIndicators": ["[data-anchor-id='CartContainer']", ".OrderCart"]
+    },
+    "subtotal": {
+      "selectors": [
+        "[data-anchor-id='CartTotal']",
+        ".OrderCart-total"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "instacart.com": {
+    "category": "Food & Drink",
+    "checkout": {
+      "urlPatterns": ["/checkout", "/store/checkout"],
+      "domIndicators": ["[data-testid='checkout-container']", ".checkout-summary"]
+    },
+    "subtotal": {
+      "selectors": [
+        "[data-testid='order-total']",
+        ".checkout-total"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "costco.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/cart", "/checkout"],
+      "domIndicators": [".order-summary", "#cart-summary"]
+    },
+    "subtotal": {
+      "selectors": [
+        ".order-summary-total .value",
+        "#order-estimated-total"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "homedepot.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/cart", "/checkout"],
+      "domIndicators": [".cart-summary", ".order-summary"]
+    },
+    "subtotal": {
+      "selectors": [
+        ".cart-summary__total-value",
+        ".order-summary__total"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "etsy.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/cart", "/checkout"],
+      "domIndicators": ["[data-cart-summary]", ".cart-summary"]
+    },
+    "subtotal": {
+      "selectors": [
+        "[data-estimated-total]",
+        ".cart-total-value"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  }
+}
