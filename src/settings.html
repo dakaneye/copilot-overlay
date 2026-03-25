@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Copilot Budget Overlay - Settings</title>
+  <link rel="stylesheet" href="styles/settings.css">
+</head>
+<body>
+  <div class="settings">
+    <h1 class="settings__title">Copilot Budget Overlay Settings</h1>
+
+    <section class="settings__section">
+      <h2 class="settings__section-title">API Configuration</h2>
+
+      <div class="settings__field">
+        <label class="settings__label" for="copilot-token">Copilot API Token</label>
+        <input type="password" id="copilot-token" class="settings__input" placeholder="Enter your Copilot API token">
+        <p class="settings__hint">Required. Get this from your Copilot.money account settings.</p>
+      </div>
+
+      <div class="settings__field">
+        <label class="settings__label" for="claude-key">Claude API Key (Optional)</label>
+        <input type="password" id="claude-key" class="settings__input" placeholder="Enter your Claude API key">
+        <p class="settings__hint">Optional. Enables AI categorization for unknown sites.</p>
+      </div>
+    </section>
+
+    <section class="settings__section">
+      <h2 class="settings__section-title">Extension</h2>
+
+      <div class="settings__field settings__field--row">
+        <label class="settings__label" for="enabled">Enable Extension</label>
+        <input type="checkbox" id="enabled" class="settings__checkbox" checked>
+      </div>
+    </section>
+
+    <section class="settings__section">
+      <h2 class="settings__section-title">Domain Overrides</h2>
+      <p class="settings__hint">Override the automatic category detection for specific domains.</p>
+
+      <div id="overrides-list" class="settings__overrides"></div>
+
+      <div class="settings__add-override">
+        <input type="text" id="new-domain" class="settings__input settings__input--small" placeholder="domain.com">
+        <select id="new-category" class="settings__select">
+          <option value="">Select category</option>
+        </select>
+        <button id="add-override-btn" class="settings__button settings__button--small">Add</button>
+      </div>
+    </section>
+
+    <div class="settings__actions">
+      <button id="save-btn" class="settings__button">Save Settings</button>
+      <span id="save-status" class="settings__save-status"></span>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

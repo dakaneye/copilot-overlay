@@ -1,0 +1,190 @@
+/* styles/settings.css */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: #333;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.settings {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 32px;
+  background: white;
+  min-height: 100vh;
+}
+
+.settings__title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  color: #1a1a1a;
+}
+
+.settings__section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.settings__section:last-of-type {
+  border-bottom: none;
+}
+
+.settings__section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.settings__field {
+  margin-bottom: 16px;
+}
+
+.settings__field--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings__label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.settings__input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.settings__input:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.settings__input--small {
+  width: auto;
+  flex: 1;
+}
+
+.settings__select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+.settings__checkbox {
+  width: 20px;
+  height: 20px;
+}
+
+.settings__hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.settings__overrides {
+  margin-bottom: 12px;
+}
+
+.settings__override-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.settings__override-domain {
+  font-family: monospace;
+  color: #333;
+}
+
+.settings__override-arrow {
+  color: #999;
+}
+
+.settings__override-category {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.settings__override-remove {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.settings__override-remove:hover {
+  color: #f44336;
+}
+
+.settings__add-override {
+  display: flex;
+  gap: 8px;
+}
+
+.settings__button {
+  padding: 12px 24px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.settings__button:hover {
+  background: #43a047;
+}
+
+.settings__button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.settings__button--small {
+  padding: 10px 16px;
+}
+
+.settings__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.settings__save-status {
+  font-size: 13px;
+}
+
+.settings__save-status--success {
+  color: #4caf50;
+}
+
+.settings__save-status--error {
+  color: #f44336;
+}
