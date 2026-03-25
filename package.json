@@ -1,0 +1,13 @@
+{
+  "name": "copilot-budget-overlay",
+  "version": "1.0.0",
+  "description": "Chrome extension that displays Copilot.money budget information on checkout pages",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

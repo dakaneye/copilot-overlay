@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "Copilot Budget Overlay",
+  "version": "1.0.0",
+  "description": "Display Copilot.money budget information on checkout pages",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://*.amazon.com/*",
+    "https://*.target.com/*",
+    "https://*.walmart.com/*",
+    "https://*.bestbuy.com/*",
+    "https://*.ubereats.com/*",
+    "https://*.doordash.com/*",
+    "https://*.instacart.com/*",
+    "https://*.costco.com/*",
+    "https://*.homedepot.com/*",
+    "https://*.etsy.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.amazon.com/*",
+        "https://*.target.com/*",
+        "https://*.walmart.com/*",
+        "https://*.bestbuy.com/*",
+        "https://*.ubereats.com/*",
+        "https://*.doordash.com/*",
+        "https://*.instacart.com/*",
+        "https://*.costco.com/*",
+        "https://*.homedepot.com/*",
+        "https://*.etsy.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles/overlay.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "options_page": "settings.html"
+}
