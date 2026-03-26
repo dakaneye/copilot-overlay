@@ -7,7 +7,7 @@
     "copilot-native-host": "./index.js"
   },
   "scripts": {
-    "test": "node --test test/constants.test.js test/keychain.test.js"
+    "test": "node --test test/constants.test.js test/keychain.test.js test/index.test.js test/playwright.test.js test/email-link.test.js test/install.test.js"
   },
   "dependencies": {
     "keytar": "^7.9.0",
