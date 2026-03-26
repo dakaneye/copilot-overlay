@@ -9,8 +9,17 @@ const FIREBASE_API = 'https://identitytoolkit.googleapis.com/v1/accounts:sendOob
 const COPILOT_GRAPHQL = 'https://api.copilot.money/graphql';
 const TOKEN_TTL = 3600000; // 1 hour
 
-// Extract this from copilot-money-mcp: grep -r "AIza" ~/dev/personal/copilot-mcp/src/
-const FIREBASE_API_KEY = 'REPLACE_WITH_ACTUAL_KEY';
+// Same env vars as copilot-money-mcp for consistency
+const FIREBASE_API_KEY = process.env.COPILOT_FIREBASE_API_KEY;
+const FIREBASE_PROJECT_ID = process.env.COPILOT_FIREBASE_PROJECT_ID;
+
+/**
+ * Check if email-link login is available (env vars configured)
+ * @returns {boolean}
+ */
+export function isAvailable() {
+  return Boolean(FIREBASE_API_KEY && FIREBASE_PROJECT_ID);
+}
 
 /**
  * Get a random available port
@@ -33,6 +42,12 @@ async function getAvailablePort() {
  * @returns {Promise<{token: string, expiresAt: number}>}
  */
 export async function login(email, onProgress) {
+  if (!FIREBASE_API_KEY || !FIREBASE_PROJECT_ID) {
+    throw new Error(
+      'Firebase configuration required. Set COPILOT_FIREBASE_API_KEY and COPILOT_FIREBASE_PROJECT_ID environment variables.'
+    );
+  }
+
   const port = await getAvailablePort();
   const callbackUrl = `http://localhost:${port}/callback`;
 
