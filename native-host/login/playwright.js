@@ -29,41 +29,44 @@ export async function isAvailable() {
  */
 export async function login(onProgress) {
   const browser = await chromium.launch({ headless: false });
-  const context = await browser.newContext();
-  const page = await context.newPage();
 
-  let capturedToken = null;
+  try {
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-  // Intercept requests to capture token
-  page.on('request', (request) => {
-    if (request.url().startsWith(GRAPHQL_URL)) {
-      const auth = request.headers()['authorization'];
-      if (auth?.startsWith('Bearer ')) {
-        capturedToken = auth.slice(7);
+    let capturedToken = null;
+
+    // Intercept requests to capture token
+    page.on('request', (request) => {
+      if (request.url().startsWith(GRAPHQL_URL)) {
+        const auth = request.headers()['authorization'];
+        if (auth?.startsWith('Bearer ')) {
+          capturedToken = auth.slice(7);
+        }
       }
+    });
+
+    onProgress?.({ type: 'LOGIN_STARTED', method: 'playwright' });
+
+    await page.goto(COPILOT_URL);
+
+    // Wait for user to complete login and for a GraphQL request with token
+    const timeout = 5 * 60 * 1000; // 5 minute timeout
+    const startTime = Date.now();
+
+    while (!capturedToken && Date.now() - startTime < timeout) {
+      await page.waitForTimeout(500);
     }
-  });
 
-  onProgress?.({ type: 'LOGIN_STARTED', method: 'playwright' });
+    if (!capturedToken) {
+      throw new Error('Login timed out - no token captured');
+    }
 
-  await page.goto(COPILOT_URL);
+    const expiresAt = Date.now() + TOKEN_TTL;
+    await saveToken(capturedToken, expiresAt);
 
-  // Wait for user to complete login and for a GraphQL request with token
-  const timeout = 5 * 60 * 1000; // 5 minute timeout
-  const startTime = Date.now();
-
-  while (!capturedToken && Date.now() - startTime < timeout) {
-    await page.waitForTimeout(500);
+    return { token: capturedToken, expiresAt };
+  } finally {
+    await browser.close();
   }
-
-  await browser.close();
-
-  if (!capturedToken) {
-    throw new Error('Login timed out - no token captured');
-  }
-
-  const expiresAt = Date.now() + TOKEN_TTL;
-  await saveToken(capturedToken, expiresAt);
-
-  return { token: capturedToken, expiresAt };
 }

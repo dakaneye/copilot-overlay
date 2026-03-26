@@ -41,11 +41,17 @@ async function getAvailablePort() {
  * @param {function} onProgress - Callback for progress updates
  * @returns {Promise<{token: string, expiresAt: number}>}
  */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function login(email, onProgress) {
   if (!FIREBASE_API_KEY || !FIREBASE_PROJECT_ID) {
     throw new Error(
       'Firebase configuration required. Set COPILOT_FIREBASE_API_KEY and COPILOT_FIREBASE_PROJECT_ID environment variables.'
     );
+  }
+
+  if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+    throw new Error('Valid email address required');
   }
 
   const port = await getAvailablePort();

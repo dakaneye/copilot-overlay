@@ -68,4 +68,23 @@ describe('playwright login module', () => {
       assert.match(source, /throw new Error\(['"]Login timed out/);
     });
   });
+
+  describe('resource cleanup', () => {
+    it('closes browser in finally block', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/playwright.js', import.meta.url), 'utf8');
+      assert.match(source, /finally\s*\{[\s\S]*?browser\.close\(\)/);
+    });
+
+    it('uses try/finally pattern for cleanup', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/playwright.js', import.meta.url), 'utf8');
+      // Verify try block exists
+      assert.match(source, /try\s*\{/);
+      // Verify finally exists after try
+      const tryPos = source.indexOf('try {');
+      const finallyPos = source.indexOf('finally {');
+      assert.ok(tryPos > 0 && finallyPos > tryPos, 'finally should come after try');
+    });
+  });
 });

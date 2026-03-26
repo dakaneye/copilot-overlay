@@ -103,5 +103,12 @@ describe('email-link login module', () => {
       const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
       assert.match(source, /throw new Error\(['"]Failed to send email link['"]\)/);
     });
+
+    it('validates email format before sending', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
+      assert.match(source, /EMAIL_REGEX/);
+      assert.match(source, /throw new Error\(['"]Valid email address required['"]\)/);
+    });
   });
 });
