@@ -95,12 +95,8 @@ async function handleNativeTokenResponse(response) {
     // Store token in chrome.storage for existing code to use
     await chrome.storage.local.set({ copilotToken: response.token });
     nativeTokenExpiresAt = response.expiresAt;
-  } else if (response.type === 'NO_TOKEN' || response.type === 'TOKEN_EXPIRED') {
-    // Need to authenticate - but only if not already logging in
-    if (!(await isLoginInProgress())) {
-      await triggerNativeLogin();
-    }
   }
+  // NO_TOKEN and TOKEN_EXPIRED are handled by user clicking Login button
 }
 
 /**
@@ -170,17 +166,6 @@ async function triggerNativeLogin() {
   }
 }
 
-/**
- * Check token expiry and refresh if needed
- */
-async function checkTokenExpiry() {
-  if (authMode === 'native' && nativeTokenExpiresAt > 0) {
-    // Refresh 5 minutes before expiry
-    if (nativeTokenExpiresAt < Date.now() + 5 * 60 * 1000) {
-      await triggerNativeLogin();
-    }
-  }
-}
 
 /**
  * Get domain mappings (user overrides + cached AI mappings)
@@ -285,13 +270,10 @@ async function refreshBudgets() {
     return budgets;
   } catch (error) {
     console.error('Failed to fetch budgets:', error);
-    // If auth error, clear token and trigger re-login
+    // If auth error, clear token (user can re-login via popup)
     if (error.isAuthError) {
       await chrome.storage.local.remove(['copilotToken']);
       nativeTokenExpiresAt = 0;
-      if (authMode === 'native' && !(await isLoginInProgress())) {
-        triggerNativeLogin();
-      }
     }
     return budgetCache.data; // Return stale if available
   }
@@ -434,15 +416,3 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Also sync token when service worker starts
 initAuth();
-
-// Check token expiry every minute
-chrome.alarms.create('check-token-expiry', { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'check-token-expiry') {
-    // Don't interfere if login is already in progress
-    if (!(await isLoginInProgress())) {
-      checkTokenExpiry();
-      initAuth();
-    }
-  }
-});
