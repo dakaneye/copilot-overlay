@@ -19,15 +19,140 @@ let categoryCache = {
   timestamp: 0,
 };
 
+// Native messaging
+const NATIVE_HOST = 'com.copilot.budget_overlay';
+let authMode = 'unknown'; // 'native' | 'manual' | 'unknown'
+let loginInProgress = false;
+let nativeTokenExpiresAt = 0;
+
 /**
- * Get stored tokens
+ * Get stored tokens - from native host or manual storage
  */
 async function getTokens() {
+  // If native auth mode and we have a non-expired token, refresh from native
+  if (authMode === 'native' && nativeTokenExpiresAt > Date.now()) {
+    try {
+      const response = await sendNativeMessage({ type: 'GET_TOKEN' });
+      if (response.type === 'TOKEN') {
+        await chrome.storage.local.set({ copilotToken: response.token });
+        nativeTokenExpiresAt = response.expiresAt;
+      }
+    } catch {
+      // Fall through to storage
+    }
+  }
+
   const result = await chrome.storage.local.get(['copilotToken', 'claudeKey']);
   return {
     copilotToken: result.copilotToken || null,
     claudeKey: result.claudeKey || null,
   };
+}
+
+/**
+ * Send native message and await response
+ */
+function sendNativeMessage(message) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendNativeMessage(NATIVE_HOST, message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
+/**
+ * Initialize auth - check for native host, fall back to manual
+ */
+async function initAuth() {
+  try {
+    const status = await sendNativeMessage({ type: 'STATUS' });
+    if (status.type === 'STATUS_OK') {
+      authMode = 'native';
+      const tokenResponse = await sendNativeMessage({ type: 'GET_TOKEN' });
+      await handleNativeTokenResponse(tokenResponse);
+    }
+  } catch (err) {
+    // Native host not installed - fall back to manual token entry
+    authMode = 'manual';
+  }
+}
+
+/**
+ * Handle token response from native host
+ */
+async function handleNativeTokenResponse(response) {
+  if (response.type === 'TOKEN') {
+    // Store token in chrome.storage for existing code to use
+    await chrome.storage.local.set({ copilotToken: response.token });
+    nativeTokenExpiresAt = response.expiresAt;
+  } else if (response.type === 'NO_TOKEN' || response.type === 'TOKEN_EXPIRED') {
+    // Need to authenticate - trigger login
+    await triggerNativeLogin();
+  }
+}
+
+/**
+ * Trigger native login with mutex
+ */
+async function triggerNativeLogin() {
+  if (loginInProgress) return;
+  loginInProgress = true;
+
+  chrome.notifications.create('copilot-auth', {
+    type: 'basic',
+    iconUrl: 'icons/icon-48.png',
+    title: 'Copilot Budget',
+    message: 'Authenticating...',
+  });
+
+  try {
+    const result = await sendNativeMessage({ type: 'LOGIN' });
+
+    if (result.type === 'LOGIN_SUCCESS') {
+      await chrome.storage.local.set({ copilotToken: result.token });
+      nativeTokenExpiresAt = result.expiresAt;
+
+      chrome.notifications.create('copilot-auth-success', {
+        type: 'basic',
+        iconUrl: 'icons/icon-48.png',
+        title: 'Copilot Budget',
+        message: 'Authenticated successfully',
+      });
+    } else if (result.type === 'LOGIN_EMAIL_SENT') {
+      chrome.notifications.create('copilot-auth-email', {
+        type: 'basic',
+        iconUrl: 'icons/icon-48.png',
+        title: 'Copilot Budget',
+        message: 'Check your email to complete login',
+        requireInteraction: true,
+      });
+    } else if (result.type === 'LOGIN_FAILED') {
+      chrome.notifications.create('copilot-auth-failed', {
+        type: 'basic',
+        iconUrl: 'icons/icon-48.png',
+        title: 'Copilot Budget',
+        message: `Authentication failed: ${result.error}`,
+      });
+    }
+  } finally {
+    loginInProgress = false;
+  }
+}
+
+/**
+ * Check token expiry and refresh if needed
+ */
+async function checkTokenExpiry() {
+  if (authMode === 'native' && nativeTokenExpiresAt > 0) {
+    // Refresh 5 minutes before expiry
+    if (nativeTokenExpiresAt < Date.now() + 5 * 60 * 1000) {
+      await triggerNativeLogin();
+    }
+  }
 }
 
 /**
@@ -231,10 +356,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (type === 'GET_AUTH_STATUS') {
+    const status = {
+      authMode,
+      nativeTokenExpiresAt,
+      loginInProgress,
+    };
+    sendResponse(status);
+    return true;
+  }
+
+  if (type === 'TRIGGER_LOGIN') {
+    if (authMode === 'native') {
+      triggerNativeLogin().then(() => sendResponse({ success: true }));
+    } else {
+      sendResponse({ error: 'Native host not available' });
+    }
+    return true;
+  }
+
   return false;
 });
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Copilot Budget Overlay installed');
+  initAuth();
+});
+
+// Also init on startup
+chrome.runtime.onStartup.addListener(() => {
+  initAuth();
+});
+
+// Check token expiry every minute
+chrome.alarms.create('check-token-expiry', { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'check-token-expiry') {
+    checkTokenExpiry();
+  }
 });
