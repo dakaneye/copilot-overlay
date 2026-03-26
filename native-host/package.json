@@ -1,0 +1,13 @@
+{
+  "name": "copilot-budget-overlay-native-host",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "copilot-native-host": "./index.js"
+  },
+  "dependencies": {
+    "keytar": "^7.9.0",
+    "playwright": "^1.40.0"
+  }
+}
