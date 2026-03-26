@@ -36,10 +36,16 @@ describe('playwright login module', () => {
   });
 
   describe('token capture', () => {
-    it('intercepts requests with page.on', async () => {
+    it('intercepts responses with page.on', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../login/playwright.js', import.meta.url), 'utf8');
-      assert.match(source, /page\.on\(['"]request['"]/);
+      assert.match(source, /page\.on\(['"]response['"]/);
+    });
+
+    it('verifies successful response before capturing token', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/playwright.js', import.meta.url), 'utf8');
+      assert.match(source, /body\.data\s*&&\s*!body\.errors/);
     });
 
     it('extracts Bearer token from authorization header', async () => {

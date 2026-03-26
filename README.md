@@ -1,83 +1,161 @@
 # Copilot Budget Overlay
 
-A Chrome extension that displays your [Copilot.money](https://copilot.money) budget information on checkout pages, helping you stay within budget while shopping online.
+Chrome extension that displays [Copilot.money](https://copilot.money) budget on checkout pages.
 
-## Features
-
-- Shows remaining budget on checkout pages
-- Supports multiple retailers: Amazon, Target, Walmart, Best Buy, Costco, Home Depot, Etsy, Apple
-- Supports food delivery: Uber Eats, DoorDash, Instacart
-- Visual indicators for budget status (normal, warning, over budget)
-- Automatic category detection based on the site
-- Native messaging host for secure token storage in system keychain
-
-## Installation
-
-### Chrome Extension
-
-1. Clone this repository
-2. Run `npm install && npm run build`
-3. Open Chrome and go to `chrome://extensions`
-4. Enable "Developer mode"
-5. Click "Load unpacked" and select the repository folder
-
-### Native Host (for secure login)
-
-The native messaging host stores your Copilot token securely in the system keychain.
+## Quick Start
 
 ```bash
+# 1. Build extension
+npm install && npm run build
+
+# 2. Load in Chrome
+# - Open chrome://extensions
+# - Enable "Developer mode" (top right)
+# - Click "Load unpacked"
+# - Select this repository folder
+# - Copy the Extension ID shown (32 characters)
+
+# 3. Install native host (enables secure login)
 cd native-host
 npm install
-./install.sh --extension-id YOUR_EXTENSION_ID
+./install.sh --extension-id <EXTENSION_ID>
 ```
 
-Get your extension ID from `chrome://extensions` after loading the unpacked extension.
+## Requirements
+
+- Node.js 20+
+- Chrome/Arc/Chromium browser
+- macOS (native host uses Keychain)
+
+## Project Structure
+
+```
+copilot-overlay/
+├── manifest.json          # Chrome extension manifest (V3)
+├── src/
+│   ├── content.js         # Injected into checkout pages
+│   ├── background.js      # Service worker (auth, API calls)
+│   ├── overlay.js         # Budget overlay DOM creation
+│   ├── popup.js           # Extension popup UI
+│   ├── settings.js        # Settings page logic
+│   ├── site-configs.json  # Site selectors and categories
+│   └── api/
+│       └── copilot.js     # Copilot GraphQL API client
+├── styles/
+│   └── overlay.css        # Overlay styling
+├── native-host/
+│   ├── index.js           # Native messaging host entry
+│   ├── keychain.js        # macOS Keychain token storage
+│   ├── install.sh         # Host registration script
+│   └── login/
+│       └── playwright.js  # Browser-based login flow
+└── build.js               # Bundles src/ for Chrome
+```
 
 ## Configuration
 
-1. Click the extension icon in Chrome
-2. Click "Settings" to configure:
-   - **Auth Mode**: Choose between API key or native messaging
-   - **Category Mapping**: Map sites to your Copilot budget categories
-   - **Enable/Disable**: Toggle the overlay on/off
+Click extension icon → Settings:
+
+| Setting | Description |
+|---------|-------------|
+| Auth Mode | `native` (recommended) or `api_key` |
+| Category | Default Copilot budget category |
+| Enabled | Toggle overlay on/off |
+
+## Site Configs
+
+Edit `src/site-configs.json` to add sites:
+
+```json
+{
+  "example.com": {
+    "checkout": {
+      "urlPatterns": ["/checkout", "/cart"],
+      "domIndicators": ["[data-testid='checkout-container']"]
+    },
+    "subtotal": {
+      "selectors": [".order-total", "#cart-subtotal"]
+    },
+    "category": "Shopping"
+  }
+}
+```
+
+| Field | Purpose |
+|-------|---------|
+| `urlPatterns` | URL paths that indicate checkout page |
+| `domIndicators` | CSS selectors that must exist on page |
+| `selectors` | CSS selectors to find total/subtotal element |
+| `category` | Copilot budget category name |
+
+## Native Host
+
+Stores tokens in macOS Keychain. Communicates via Chrome Native Messaging.
+
+```bash
+# Install for specific browser
+./install.sh --extension-id <ID> --browser chrome  # or arc, chromium
+
+# Test manually
+echo '{"type":"STATUS"}' | node index.js
+
+# View logs
+tail -f /tmp/copilot-native-host.log
+```
+
+### Message Types
+
+| Type | Purpose |
+|------|---------|
+| `STATUS` | Returns `{type: "STATUS_OK", version}` |
+| `GET_TOKEN` | Returns cached token or `{needsLogin: true}` |
+| `LOGIN` | Opens browser for OAuth, captures token |
+
+## API
+
+`src/api/copilot.js` uses Copilot's GraphQL API:
+
+```javascript
+import { fetchCategoriesWithBudgets } from './api/copilot.js';
+
+const categories = await fetchCategoriesWithBudgets(token);
+// Returns: [{ name, icon, budgetAmount, spentAmount, rolloverAmount }]
+```
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
+npm run build    # Build once
+npm run watch    # Watch mode
 
-# Build the extension
-npm run build
-
-# Watch for changes
-npm run watch
-
-# Run native host tests
-cd native-host && npm test
+cd native-host
+npm test         # Run tests (66 tests)
 ```
 
 ## Supported Sites
 
-| Site | Category |
-|------|----------|
-| Amazon | Shopping |
-| Target | Shopping |
-| Walmart | Shopping |
-| Best Buy | Shopping |
-| Costco | Shopping |
-| Home Depot | Shopping |
-| Etsy | Shopping |
-| Apple | Shopping |
-| Uber Eats | Food & Drink |
-| DoorDash | Food & Drink |
-| Instacart | Food & Drink |
+| Site | Category | Selector |
+|------|----------|----------|
+| amazon.com | Shopping | `#subtotals-marketplace-table .a-text-bold` |
+| target.com | Shopping | `[data-test='cart-summary-total']` |
+| walmart.com | Shopping | `[data-testid='total-price']` |
+| bestbuy.com | Shopping | `.order-summary__total` |
+| costco.com | Shopping | `#order-summary .value` |
+| homedepot.com | Shopping | `.cart-total__value` |
+| etsy.com | Shopping | `[data-selector='total-value']` |
+| apple.com | Shopping | `[data-autom='bagtotalvalue']` |
+| ubereats.com | Food & Drink | `[data-testid='cart-total']` |
+| doordash.com | Food & Drink | `[data-anchor-id='OrderCartTotal']` |
+| instacart.com | Food & Drink | `[data-testid='order-total']` |
 
-## Privacy
+## Troubleshooting
 
-- Your Copilot credentials are stored securely in your system keychain (via the native host)
-- The extension only activates on checkout pages of supported sites
-- No data is sent to third parties
+| Issue | Solution |
+|-------|----------|
+| "not_configured" error | Open extension settings, verify auth mode |
+| Login window closes immediately | Token captured from cached session; clear Copilot cookies |
+| Overlay not showing | Check console for selector errors; site may need new config |
+| Native host not found | Re-run `install.sh` with correct extension ID |
 
 ## License
 

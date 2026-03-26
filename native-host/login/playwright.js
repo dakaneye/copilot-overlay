@@ -60,12 +60,21 @@ export async function login(onProgress) {
 
     let capturedToken = null;
 
-    // Intercept requests to capture token
-    page.on('request', (request) => {
-      if (request.url().startsWith(GRAPHQL_URL)) {
+    // Intercept responses to capture token only after successful auth
+    page.on('response', async (response) => {
+      if (response.url().startsWith(GRAPHQL_URL) && response.status() === 200) {
+        const request = response.request();
         const auth = request.headers()['authorization'];
         if (auth?.startsWith('Bearer ')) {
-          capturedToken = auth.slice(7);
+          // Verify this is a successful response (not an auth error)
+          try {
+            const body = await response.json();
+            if (body.data && !body.errors) {
+              capturedToken = auth.slice(7);
+            }
+          } catch {
+            // Response not JSON or failed to parse
+          }
         }
       }
     });
