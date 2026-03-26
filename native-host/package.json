@@ -1,6 +1,8 @@
 {
   "name": "copilot-budget-overlay-native-host",
   "version": "1.0.0",
+  "description": "Native messaging host for Copilot Budget Overlay Chrome extension",
+  "license": "MIT",
   "type": "module",
   "main": "index.js",
   "bin": {
