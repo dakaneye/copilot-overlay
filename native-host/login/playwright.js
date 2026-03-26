@@ -4,14 +4,39 @@
 import { chromium } from 'playwright';
 import { saveToken } from '../keychain.js';
 import { TOKEN_TTL } from '../constants.js';
+import { existsSync, writeFileSync, unlinkSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const COPILOT_URL = 'https://app.copilot.money';
 const GRAPHQL_URL = 'https://api.copilot.money/graphql';
+const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const LOCK_FILE = join(tmpdir(), 'copilot-login.lock');
 
-/**
- * Check if Playwright is available
- * @returns {Promise<boolean>}
- */
+function acquireLock() {
+  // Check if lock exists and is recent (within timeout)
+  if (existsSync(LOCK_FILE)) {
+    try {
+      const lockTime = parseInt(readFileSync(LOCK_FILE, 'utf8'), 10);
+      if (Date.now() - lockTime < LOGIN_TIMEOUT_MS) {
+        return false; // Lock is held
+      }
+    } catch {
+      // Corrupted lock file, proceed to overwrite
+    }
+  }
+  writeFileSync(LOCK_FILE, Date.now().toString());
+  return true;
+}
+
+function releaseLock() {
+  try {
+    unlinkSync(LOCK_FILE);
+  } catch {
+    // Ignore errors
+  }
+}
+
 export async function isAvailable() {
   try {
     const browser = await chromium.launch({ headless: true });
@@ -22,15 +47,14 @@ export async function isAvailable() {
   }
 }
 
-/**
- * Login via Playwright browser automation
- * @param {function} onProgress - Callback for progress updates
- * @returns {Promise<{token: string, expiresAt: number}>}
- */
 export async function login(onProgress) {
-  const browser = await chromium.launch({ headless: false });
+  if (!acquireLock()) {
+    throw new Error('Login already in progress');
+  }
 
+  let browser;
   try {
+    browser = await chromium.launch({ headless: false });
     const context = await browser.newContext();
     const page = await context.newPage();
 
@@ -50,11 +74,9 @@ export async function login(onProgress) {
 
     await page.goto(COPILOT_URL);
 
-    // Wait for user to complete login and for a GraphQL request with token
-    const timeout = 5 * 60 * 1000; // 5 minute timeout
     const startTime = Date.now();
 
-    while (!capturedToken && Date.now() - startTime < timeout) {
+    while (!capturedToken && Date.now() - startTime < LOGIN_TIMEOUT_MS) {
       await page.waitForTimeout(500);
     }
 
@@ -67,6 +89,7 @@ export async function login(onProgress) {
 
     return { token: capturedToken, expiresAt };
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
+    releaseLock();
   }
 }

@@ -56,10 +56,11 @@ describe('playwright login module', () => {
   });
 
   describe('timeout handling', () => {
-    it('has 5 minute timeout', async () => {
+    it('has 5 minute timeout constant', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../login/playwright.js', import.meta.url), 'utf8');
-      assert.match(source, /5\s*\*\s*60\s*\*\s*1000/);
+      assert.match(source, /LOGIN_TIMEOUT_MS\s*=\s*5\s*\*\s*60\s*\*\s*1000/);
+      assert.match(source, /LOGIN_TIMEOUT_MS\)/);
     });
 
     it('throws error on timeout', async () => {

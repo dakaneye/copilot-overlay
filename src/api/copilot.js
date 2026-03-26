@@ -3,57 +3,74 @@
 
 const COPILOT_API_URL = 'https://api.copilot.money/graphql';
 
-/**
- * Fetch budget categories from Copilot
- * @param {string} token - API token
- * @returns {Promise<string[]>} - List of category names
- */
-export async function fetchCategories(token) {
-  const query = `
-    query GetCategories {
-      categories {
-        name
-      }
-    }
-  `;
-
-  const response = await fetch(COPILOT_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ query }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Copilot API error: ${response.status}`);
+// GraphQL fragments from copilot-mcp
+const CATEGORY_FIELDS = `
+fragment CategoryFields on Category {
+  isRolloverDisabled
+  canBeDeleted
+  isExcluded
+  templateId
+  colorName
+  icon {
+    ... on EmojiUnicode { unicode }
   }
+  name
+  id
+}`;
 
-  const data = await response.json();
-  if (data.errors) {
-    throw new Error(`Copilot GraphQL error: ${data.errors[0].message}`);
-  }
-
-  return data.data.categories.map(c => c.name);
+const SPEND_FIELDS = `
+fragment SpendMonthlyFields on CategoryMonthlySpent {
+  unpaidRecurringAmount
+  comparisonAmount
+  amount
+  month
+  id
 }
+fragment SpendFields on CategorySpend {
+  current { ...SpendMonthlyFields }
+  histories { ...SpendMonthlyFields }
+}`;
+
+const BUDGET_FIELDS = `
+fragment BudgetMonthlyFields on CategoryMonthlyBudget {
+  unassignedRolloverAmount
+  childRolloverAmount
+  unassignedAmount
+  resolvedAmount
+  rolloverAmount
+  childAmount
+  goalAmount
+  amount
+  month
+  id
+}
+fragment BudgetFields on CategoryBudget {
+  current { ...BudgetMonthlyFields }
+  histories { ...BudgetMonthlyFields }
+}`;
 
 /**
- * Fetch budget data for a category
+ * Fetch categories with budget and spending data
  * @param {string} token - API token
- * @param {string} category - Category name
- * @returns {Promise<{category: string, budget: number, spent: number, remaining: number} | null>}
+ * @returns {Promise<Array>} - List of categories with budget/spend info
  */
-export async function fetchBudget(token, category) {
+export async function fetchCategoriesWithBudgets(token) {
   const query = `
-    query GetBudget($category: String!) {
-      budget(category: $category) {
-        category
-        budgetAmount
-        spentAmount
-      }
+${CATEGORY_FIELDS}
+${SPEND_FIELDS}
+${BUDGET_FIELDS}
+query Categories($spend: Boolean = false, $budget: Boolean = false, $rollovers: Boolean) {
+  categories {
+    ...CategoryFields
+    spend @include(if: $spend) { ...SpendFields }
+    budget(isRolloverEnabled: $rollovers) @include(if: $budget) { ...BudgetFields }
+    childCategories {
+      ...CategoryFields
+      spend @include(if: $spend) { ...SpendFields }
+      budget(isRolloverEnabled: $rollovers) @include(if: $budget) { ...BudgetFields }
     }
-  `;
+  }
+}`;
 
   const response = await fetch(COPILOT_API_URL, {
     method: 'POST',
@@ -63,72 +80,68 @@ export async function fetchBudget(token, category) {
     },
     body: JSON.stringify({
       query,
-      variables: { category },
+      variables: { spend: true, budget: true, rollovers: false },
     }),
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    throw new Error(`Copilot API error: ${response.status}`);
+    // Check for auth errors specifically
+    if (response.status === 401) {
+      const error = new Error(`Copilot API error: ${response.status} - ${JSON.stringify(data)}`);
+      error.isAuthError = true;
+      throw error;
+    }
+    throw new Error(`Copilot API error: ${response.status} - ${JSON.stringify(data)}`);
   }
 
-  const data = await response.json();
   if (data.errors) {
     throw new Error(`Copilot GraphQL error: ${data.errors[0].message}`);
   }
 
-  const budget = data.data.budget;
-  if (!budget) {
-    return null;
+  // Flatten categories including children
+  const allCategories = [];
+  for (const cat of data.data.categories) {
+    allCategories.push(cat);
+    if (cat.childCategories) {
+      allCategories.push(...cat.childCategories);
+    }
   }
 
-  return {
-    category: budget.category,
-    budget: budget.budgetAmount,
-    spent: budget.spentAmount,
-    remaining: budget.budgetAmount - budget.spentAmount,
-  };
+  return allCategories;
 }
 
 /**
- * Fetch all budgets
+ * Fetch budget categories (just names)
+ * @param {string} token - API token
+ * @returns {Promise<string[]>} - List of category names
+ */
+export async function fetchCategories(token) {
+  const categories = await fetchCategoriesWithBudgets(token);
+  return categories.map(c => c.name);
+}
+
+/**
+ * Fetch all budgets as a Map
  * @param {string} token - API token
  * @returns {Promise<Map<string, {budget: number, spent: number, remaining: number}>>}
  */
 export async function fetchAllBudgets(token) {
-  const query = `
-    query GetAllBudgets {
-      budgets {
-        category
-        budgetAmount
-        spentAmount
-      }
-    }
-  `;
-
-  const response = await fetch(COPILOT_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ query }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Copilot API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  if (data.errors) {
-    throw new Error(`Copilot GraphQL error: ${data.errors[0].message}`);
-  }
+  const categories = await fetchCategoriesWithBudgets(token);
 
   const budgets = new Map();
-  for (const b of data.data.budgets) {
-    budgets.set(b.category, {
-      budget: b.budgetAmount,
-      spent: b.spentAmount,
-      remaining: b.budgetAmount - b.spentAmount,
+  for (const cat of categories) {
+    // Skip categories without budget data
+    if (!cat.budget?.current) continue;
+
+    const budgetAmount = cat.budget.current.amount || 0;
+    const spentAmount = cat.spend?.current?.amount || 0;
+
+    budgets.set(cat.name, {
+      budget: budgetAmount,
+      spent: spentAmount,
+      remaining: budgetAmount - spentAmount,
     });
   }
 

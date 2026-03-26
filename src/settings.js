@@ -6,14 +6,12 @@ let domainMappings = {};
 
 async function loadSettings() {
   const result = await chrome.storage.local.get([
-    'copilotToken',
     'claudeKey',
     'enabled',
     'domainMappings',
     'categories',
   ]);
 
-  document.getElementById('copilot-token').value = result.copilotToken || '';
   document.getElementById('claude-key').value = result.claudeKey || '';
   document.getElementById('enabled').checked = result.enabled !== false;
 
@@ -88,13 +86,12 @@ async function saveSettings() {
 
   try {
     await chrome.storage.local.set({
-      copilotToken: document.getElementById('copilot-token').value,
       claudeKey: document.getElementById('claude-key').value,
       enabled: document.getElementById('enabled').checked,
       domainMappings,
     });
 
-    // Refresh cache to pick up new token
+    // Refresh cache
     await chrome.runtime.sendMessage({ type: 'REFRESH_CACHE' });
 
     saveStatus.textContent = 'Saved!';

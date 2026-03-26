@@ -22,16 +22,10 @@ describe('email-link login module', () => {
       assert.match(source, /process\.env\.COPILOT_FIREBASE_API_KEY/);
     });
 
-    it('reads COPILOT_FIREBASE_PROJECT_ID from env', async () => {
+    it('isAvailable checks API key', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
-      assert.match(source, /process\.env\.COPILOT_FIREBASE_PROJECT_ID/);
-    });
-
-    it('isAvailable checks both env vars', async () => {
-      const fs = await import('node:fs/promises');
-      const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
-      assert.match(source, /FIREBASE_API_KEY\s*&&\s*FIREBASE_PROJECT_ID/);
+      assert.match(source, /Boolean\(FIREBASE_API_KEY\)/);
     });
   });
 
@@ -71,17 +65,18 @@ describe('email-link login module', () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
       // Find the positions - server.listen should come before setTimeout
-      const listenPos = source.indexOf('server.listen(port)');
+      const listenPos = source.indexOf("server.listen(port, '127.0.0.1')");
       const timeoutPos = source.indexOf('timeout = setTimeout');
       assert.ok(listenPos > 0, 'server.listen should exist');
       assert.ok(timeoutPos > 0, 'setTimeout should exist');
       assert.ok(listenPos < timeoutPos, 'server.listen should come before setTimeout');
     });
 
-    it('has 5 minute timeout', async () => {
+    it('has 5 minute timeout constant', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
-      assert.match(source, /5\s*\*\s*60\s*\*\s*1000/);
+      assert.match(source, /LOGIN_TIMEOUT_MS\s*=\s*5\s*\*\s*60\s*\*\s*1000/);
+      assert.match(source, /LOGIN_TIMEOUT_MS\)/);
     });
 
     it('clears timeout on success', async () => {
@@ -109,6 +104,34 @@ describe('email-link login module', () => {
       const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
       assert.match(source, /EMAIL_REGEX/);
       assert.match(source, /throw new Error\(['"]Valid email address required['"]\)/);
+    });
+
+    it('validates Firebase response before using', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
+      assert.match(source, /verifyResponse\.ok/);
+      assert.match(source, /verifyData\.idToken/);
+    });
+
+    it('validates Copilot response before using', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
+      assert.match(source, /copilotResponse\.ok/);
+      assert.match(source, /copilotData\.data\?\.loginWithFirebase\?\.accessToken/);
+    });
+  });
+
+  describe('localhost binding', () => {
+    it('binds HTTP server to localhost only', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
+      assert.match(source, /server\.listen\(port,\s*['"]127\.0\.0\.1['"]\)/);
+    });
+
+    it('binds getAvailablePort to localhost', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../login/email-link.js', import.meta.url), 'utf8');
+      assert.match(source, /server\.listen\(0,\s*['"]127\.0\.0\.1['"]/);
     });
   });
 });

@@ -7,22 +7,20 @@ const SERVICE = 'copilot-money-mcp';
 const ACCOUNT_TOKEN = 'access_token';
 const ACCOUNT_EXPIRES = 'expires_at';
 
-/**
- * Get token and expiry from Keychain
- * @returns {Promise<{token: string, expiresAt: number} | null>}
- */
+const MAX_TOKEN_AGE_MS = 365 * 24 * 60 * 60 * 1000; // Reject timestamps older than 1 year
+
 export async function getToken() {
-  const token = await keytar.getPassword(SERVICE, ACCOUNT_TOKEN);
-  const expiresAtStr = await keytar.getPassword(SERVICE, ACCOUNT_EXPIRES);
+  const [token, expiresAtStr] = await Promise.all([
+    keytar.getPassword(SERVICE, ACCOUNT_TOKEN),
+    keytar.getPassword(SERVICE, ACCOUNT_EXPIRES),
+  ]);
 
   if (!token) {
     return null;
   }
 
   const expiresAt = expiresAtStr ? parseInt(expiresAtStr, 10) : 0;
-
-  // Validate expiry is a reasonable timestamp (not NaN, not negative, not impossibly old)
-  const minValidTimestamp = Date.now() - 365 * 24 * 60 * 60 * 1000; // 1 year ago
+  const minValidTimestamp = Date.now() - MAX_TOKEN_AGE_MS;
   if (Number.isNaN(expiresAt) || expiresAt < minValidTimestamp) {
     return { token, expiresAt: 0 }; // Treat as expired
   }
@@ -30,21 +28,13 @@ export async function getToken() {
   return { token, expiresAt };
 }
 
-/**
- * Save token and expiry to Keychain
- * @param {string} token
- * @param {number} expiresAt
- */
 export async function saveToken(token, expiresAt) {
-  await keytar.setPassword(SERVICE, ACCOUNT_TOKEN, token);
-  await keytar.setPassword(SERVICE, ACCOUNT_EXPIRES, String(expiresAt));
+  await Promise.all([
+    keytar.setPassword(SERVICE, ACCOUNT_TOKEN, token),
+    keytar.setPassword(SERVICE, ACCOUNT_EXPIRES, String(expiresAt)),
+  ]);
 }
 
-/**
- * Check if token is expired
- * @param {number} expiresAt
- * @returns {boolean}
- */
 export function isExpired(expiresAt) {
   return Date.now() >= expiresAt;
 }

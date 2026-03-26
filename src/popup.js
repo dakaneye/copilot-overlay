@@ -9,11 +9,13 @@ async function checkStatus() {
   const loginBtn = document.getElementById('login-btn');
 
   try {
-    // Get auth status
-    const authStatus = await chrome.runtime.sendMessage({ type: 'GET_AUTH_STATUS' });
+    // Read directly from storage instead of messaging
+    const storage = await chrome.storage.local.get(['copilotToken']);
 
-    // Get connection status
-    const response = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
+    // Simple status based on token presence
+    const hasToken = !!storage.copilotToken;
+    const authStatus = { authMode: hasToken ? 'native' : 'manual' };
+    const response = { connected: hasToken };
 
     if (authStatus.loginInProgress) {
       statusIcon.className = 'popup__status-icon popup__status-icon--loading';
@@ -135,5 +137,5 @@ document.getElementById('refresh-btn').addEventListener('click', refreshCache);
 document.getElementById('login-btn').addEventListener('click', triggerLogin);
 document.getElementById('copy-cmd-btn').addEventListener('click', copyCommand);
 
-// Check status on load
-checkStatus();
+// Check status on load - delay to let service worker start
+setTimeout(checkStatus, 100);

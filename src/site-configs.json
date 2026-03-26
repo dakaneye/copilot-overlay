@@ -7,6 +7,9 @@
     },
     "subtotal": {
       "selectors": [
+        "#subtotals-marketplace-table [data-testid] .a-text-bold",
+        "#subtotals-marketplace-table li:last-child span",
+        ".order-summary-grid .a-text-bold",
         ".grand-total-price",
         "#sc-subtotal-amount-activecart",
         "[data-name='Active Items Subtotal']"
@@ -73,11 +76,12 @@
   "doordash.com": {
     "category": "Food & Drink",
     "checkout": {
-      "urlPatterns": ["/checkout", "/cart"],
-      "domIndicators": ["[data-anchor-id='CartContainer']", ".OrderCart"]
+      "urlPatterns": ["/checkout", "/cart", "/store/"],
+      "domIndicators": ["[data-anchor-id='CartContainer']", "[data-anchor-id='OrderCartTotal']", ".OrderCart"]
     },
     "subtotal": {
       "selectors": [
+        "[data-anchor-id='OrderCartTotal']",
         "[data-anchor-id='CartTotal']",
         ".OrderCart-total"
       ],
@@ -136,6 +140,20 @@
       "selectors": [
         "[data-estimated-total]",
         ".cart-total-value"
+      ],
+      "priceRegex": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "apple.com": {
+    "category": "Shopping",
+    "checkout": {
+      "urlPatterns": ["/shop/bag", "/shop/checkout"],
+      "domIndicators": ["[data-autom='bagtotalvalue']", ".rs-summary-value"]
+    },
+    "subtotal": {
+      "selectors": [
+        "[data-autom='bagtotalvalue']",
+        ".rs-summary-value"
       ],
       "priceRegex": "\\$[\\d,]+\\.\\d{2}"
     }

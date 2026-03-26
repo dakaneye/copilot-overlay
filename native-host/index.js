@@ -5,8 +5,14 @@
 import { getToken, isExpired } from './keychain.js';
 import * as playwright from './login/playwright.js';
 import * as emailLink from './login/email-link.js';
+import { appendFileSync } from 'node:fs';
 
 const VERSION = '1.0.0';
+const LOG_FILE = '/tmp/copilot-native-host.log';
+
+function log(msg) {
+  appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`);
+}
 
 const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB limit
 
@@ -34,7 +40,7 @@ function readMessage() {
         }
 
         if (messageLength !== null && buffer.length >= 4 + messageLength) {
-          const messageBuffer = buffer.slice(4, 4 + messageLength);
+          const messageBuffer = buffer.subarray(4, 4 + messageLength);
           try {
             resolve(JSON.parse(messageBuffer.toString()));
           } catch (e) {
@@ -51,9 +57,6 @@ function readMessage() {
   });
 }
 
-/**
- * Write a native message to stdout
- */
 function writeMessage(message) {
   const json = JSON.stringify(message);
   const buffer = Buffer.from(json);
@@ -63,9 +66,6 @@ function writeMessage(message) {
   process.stdout.write(buffer);
 }
 
-/**
- * Handle GET_TOKEN message
- */
 async function handleGetToken() {
   const tokenData = await getToken();
 
@@ -80,10 +80,6 @@ async function handleGetToken() {
   return { type: 'TOKEN', token: tokenData.token, expiresAt: tokenData.expiresAt };
 }
 
-/**
- * Handle LOGIN message
- * @param {{type: string, email?: string}} message
- */
 async function handleLogin(message) {
   const progress = (msg) => writeMessage(msg);
 
@@ -122,20 +118,16 @@ async function handleLogin(message) {
   return { type: 'LOGIN_FAILED', error: `${reason}. Email login not configured (set COPILOT_FIREBASE_API_KEY).` };
 }
 
-/**
- * Handle STATUS message
- */
 async function handleStatus() {
   const playwrightAvailable = await playwright.isAvailable();
   return { type: 'STATUS_OK', version: VERSION, playwrightAvailable };
 }
 
-/**
- * Main entry point
- */
 async function main() {
+  log('Native host started');
   try {
     const message = await readMessage();
+    log(`REQUEST: ${JSON.stringify(message)}`);
     let response;
 
     switch (message.type) {
@@ -152,8 +144,10 @@ async function main() {
         response = { type: 'ERROR', error: `Unknown message type: ${message.type}` };
     }
 
+    log(`RESPONSE: ${JSON.stringify(response)}`);
     writeMessage(response);
   } catch (error) {
+    log(`ERROR: ${error.message}`);
     writeMessage({ type: 'ERROR', error: error.message });
   }
 

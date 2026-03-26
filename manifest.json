@@ -7,9 +7,11 @@
     "storage",
     "activeTab",
     "nativeMessaging",
-    "notifications"
+    "notifications",
+    "alarms"
   ],
   "host_permissions": [
+    "https://api.copilot.money/*",
     "https://*.amazon.com/*",
     "https://*.target.com/*",
     "https://*.walmart.com/*",
@@ -19,7 +21,8 @@
     "https://*.instacart.com/*",
     "https://*.costco.com/*",
     "https://*.homedepot.com/*",
-    "https://*.etsy.com/*"
+    "https://*.etsy.com/*",
+    "https://*.apple.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -37,7 +40,8 @@
         "https://*.instacart.com/*",
         "https://*.costco.com/*",
         "https://*.homedepot.com/*",
-        "https://*.etsy.com/*"
+        "https://*.etsy.com/*",
+        "https://*.apple.com/*"
       ],
       "js": ["content.js"],
       "css": ["styles/overlay.css"]

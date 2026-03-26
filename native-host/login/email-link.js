@@ -9,45 +9,28 @@ import { TOKEN_TTL } from '../constants.js';
 const FIREBASE_API = 'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode';
 const COPILOT_GRAPHQL = 'https://api.copilot.money/graphql';
 
-// Same env vars as copilot-money-mcp for consistency
 const FIREBASE_API_KEY = process.env.COPILOT_FIREBASE_API_KEY;
-const FIREBASE_PROJECT_ID = process.env.COPILOT_FIREBASE_PROJECT_ID;
+const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Check if email-link login is available (env vars configured)
- * @returns {boolean}
- */
 export function isAvailable() {
-  return Boolean(FIREBASE_API_KEY && FIREBASE_PROJECT_ID);
+  return Boolean(FIREBASE_API_KEY);
 }
 
-/**
- * Get a random available port
- * @returns {Promise<number>}
- */
 async function getAvailablePort() {
   return new Promise((resolve) => {
     const server = createServer();
-    server.listen(0, () => {
+    server.listen(0, '127.0.0.1', () => {
       const port = server.address().port;
       server.close(() => resolve(port));
     });
   });
 }
 
-/**
- * Login via email link
- * @param {string} email - User's email address
- * @param {function} onProgress - Callback for progress updates
- * @returns {Promise<{token: string, expiresAt: number}>}
- */
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function login(email, onProgress) {
-  if (!FIREBASE_API_KEY || !FIREBASE_PROJECT_ID) {
-    throw new Error(
-      'Firebase configuration required. Set COPILOT_FIREBASE_API_KEY and COPILOT_FIREBASE_PROJECT_ID environment variables.'
-    );
+  if (!FIREBASE_API_KEY) {
+    throw new Error('Firebase configuration required. Set COPILOT_FIREBASE_API_KEY environment variable.');
   }
 
   if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
@@ -96,20 +79,34 @@ export async function login(email, onProgress) {
               }
             );
 
-            const { idToken } = await verifyResponse.json();
+            if (!verifyResponse.ok) {
+              throw new Error(`Firebase verification failed: ${verifyResponse.status}`);
+            }
 
-            // Exchange Firebase token for Copilot token
+            const verifyData = await verifyResponse.json();
+            if (!verifyData.idToken) {
+              throw new Error('Firebase response missing idToken');
+            }
+
             const copilotResponse = await fetch(COPILOT_GRAPHQL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 query: `mutation LoginWithFirebase($token: String!) { loginWithFirebase(token: $token) { accessToken } }`,
-                variables: { token: idToken },
+                variables: { token: verifyData.idToken },
               }),
             });
 
-            const { data } = await copilotResponse.json();
-            const token = data.loginWithFirebase.accessToken;
+            if (!copilotResponse.ok) {
+              throw new Error(`Copilot API failed: ${copilotResponse.status}`);
+            }
+
+            const copilotData = await copilotResponse.json();
+            if (!copilotData.data?.loginWithFirebase?.accessToken) {
+              throw new Error('Copilot response missing accessToken');
+            }
+
+            const token = copilotData.data.loginWithFirebase.accessToken;
             const expiresAt = Date.now() + TOKEN_TTL;
 
             await saveToken(token, expiresAt);
@@ -131,11 +128,11 @@ export async function login(email, onProgress) {
       }
     });
 
-    server.listen(port);
+    server.listen(port, '127.0.0.1');
 
     timeout = setTimeout(() => {
       server.close();
       reject(new Error('Email login timed out'));
-    }, 5 * 60 * 1000);
+    }, LOGIN_TIMEOUT_MS);
   });
 }

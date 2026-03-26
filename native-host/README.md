@@ -41,13 +41,12 @@ Native messaging host for the Copilot Budget Overlay Chrome extension. Reads aut
 
 ## Configuration
 
-For email-link fallback, set Firebase environment variables:
+For email-link fallback, set the Firebase API key:
 ```bash
 export COPILOT_FIREBASE_API_KEY="your-api-key"
-export COPILOT_FIREBASE_PROJECT_ID="your-project-id"
 ```
 
-These can be extracted from the Copilot Money web app (same as copilot-money-mcp).
+This can be extracted from the Copilot Money web app (same as copilot-money-mcp).
 
 ## Message Protocol
 
@@ -86,6 +85,13 @@ Uses the same service as copilot-money-mcp:
 ```bash
 npm test
 ```
+
+63 tests across 7 test files covering:
+- Native messaging protocol (integration tests with real process spawning)
+- Keychain operations
+- Playwright browser automation
+- Email-link fallback
+- Install script validation
 
 ## Troubleshooting
 
