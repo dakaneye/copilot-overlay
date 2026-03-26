@@ -3,10 +3,10 @@
 
 import { chromium } from 'playwright';
 import { saveToken } from '../keychain.js';
+import { TOKEN_TTL } from '../constants.js';
 
 const COPILOT_URL = 'https://app.copilot.money';
 const GRAPHQL_URL = 'https://api.copilot.money/graphql';
-const TOKEN_TTL = 3600000; // 1 hour
 
 /**
  * Check if Playwright is available

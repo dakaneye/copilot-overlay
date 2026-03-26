@@ -4,10 +4,10 @@
 import { createServer } from 'node:http';
 import { URL } from 'node:url';
 import { saveToken } from '../keychain.js';
+import { TOKEN_TTL } from '../constants.js';
 
 const FIREBASE_API = 'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode';
 const COPILOT_GRAPHQL = 'https://api.copilot.money/graphql';
-const TOKEN_TTL = 3600000; // 1 hour
 
 // Same env vars as copilot-money-mcp for consistency
 const FIREBASE_API_KEY = process.env.COPILOT_FIREBASE_API_KEY;
