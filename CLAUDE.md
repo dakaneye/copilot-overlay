@@ -2,23 +2,45 @@
 
 ## Quality Gates - MANDATORY Before Every Commit
 
-Run ALL of these before committing. No exceptions.
+**ALL gates must pass before committing. No exceptions.**
 
+### 1. Build
 ```bash
-# 1. Build extension
 npm run build
+```
 
-# 2. Run native-host tests (must be 67/67 passing)
+### 2. Tests (must be 67/67 passing)
+```bash
 cd native-host && npm test && cd ..
+```
 
-# 3. Check for console.log (none allowed in src/)
+### 3. Lint checks
+```bash
+# No console.log in src/ (console.error is ok)
 grep -rn "console.log" src/*.js src/**/*.js 2>/dev/null | grep -v "console.error"
 
-# 4. Check for debugger statements
+# No debugger statements
 grep -rn "debugger" src/
 ```
 
-**If any check fails, fix it before committing.**
+### 4. Security scan
+```bash
+# No hardcoded secrets/tokens/keys
+grep -rn --include="*.js" --include="*.json" -E "(api[_-]?key|secret|password|token)\s*[:=]\s*['\"][^'\"]+['\"]" . | grep -v node_modules | grep -v package-lock
+
+# No eval or Function constructor with user input
+grep -rn "eval\|new Function" src/
+```
+
+### 5. Code review - MUST BE A GRADE
+Run `/review-code` on changed files. **Must receive A grade (90+) before committing.**
+
+If grade is below A:
+- Fix all BLOCKER issues
+- Fix all MAJOR issues
+- Re-run review until A grade achieved
+
+**Do not skip or bypass any gate.**
 
 ## Project Structure
 
