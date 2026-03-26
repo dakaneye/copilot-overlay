@@ -81,19 +81,23 @@ async function handleLogin() {
   const progress = (msg) => writeMessage(msg);
 
   // Try Playwright first
+  let playwrightError = null;
   if (await playwright.isAvailable()) {
     try {
       const result = await playwright.login(progress);
       return { type: 'LOGIN_SUCCESS', token: result.token, expiresAt: result.expiresAt };
     } catch (error) {
-      // Fall through to email-link
+      playwrightError = error.message;
     }
   }
 
   // Fall back to email-link
-  // For now, we don't have cached email - return error
+  // For now, we don't have cached email - return error with context
   // In full implementation, we'd prompt or use cached email
-  return { type: 'LOGIN_FAILED', error: 'Email login not yet implemented - use Playwright' };
+  const reason = playwrightError
+    ? `Playwright login failed: ${playwrightError}`
+    : 'Playwright not available';
+  return { type: 'LOGIN_FAILED', error: `${reason}. Email login not yet implemented.` };
 }
 
 /**

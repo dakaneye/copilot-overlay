@@ -55,10 +55,7 @@ export async function login(email, onProgress) {
 
   // Start HTTP server to wait for callback
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      server.close();
-      reject(new Error('Email login timed out'));
-    }, 5 * 60 * 1000);
+    let timeout;
 
     const server = createServer(async (req, res) => {
       const url = new URL(req.url, `http://localhost:${port}`);
@@ -85,7 +82,8 @@ export async function login(email, onProgress) {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                query: `mutation { loginWithFirebase(token: "${idToken}") { accessToken } }`,
+                query: `mutation LoginWithFirebase($token: String!) { loginWithFirebase(token: $token) { accessToken } }`,
+                variables: { token: idToken },
               }),
             });
 
@@ -113,5 +111,10 @@ export async function login(email, onProgress) {
     });
 
     server.listen(port);
+
+    timeout = setTimeout(() => {
+      server.close();
+      reject(new Error('Email login timed out'));
+    }, 5 * 60 * 1000);
   });
 }

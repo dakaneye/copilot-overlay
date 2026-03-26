@@ -20,6 +20,13 @@ export async function getToken() {
   }
 
   const expiresAt = expiresAtStr ? parseInt(expiresAtStr, 10) : 0;
+
+  // Validate expiry is a reasonable timestamp (not NaN, not negative, not impossibly old)
+  const minValidTimestamp = Date.now() - 365 * 24 * 60 * 60 * 1000; // 1 year ago
+  if (Number.isNaN(expiresAt) || expiresAt < minValidTimestamp) {
+    return { token, expiresAt: 0 }; // Treat as expired
+  }
+
   return { token, expiresAt };
 }
 
