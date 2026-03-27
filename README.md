@@ -1,126 +1,146 @@
 # Copilot Budget Overlay
 
-Chrome extension that displays [Copilot.money](https://copilot.money) budget on checkout pages.
-
-## Quick Start
-
-```bash
-# 1. Build extension
-npm install && npm run build
-
-# 2. Load in Chrome
-# - Open chrome://extensions
-# - Enable "Developer mode" (top right)
-# - Click "Load unpacked"
-# - Select this repository folder
-# - Copy the Extension ID shown (32 characters)
-
-# 3. Install native host (enables secure login)
-cd native-host
-npm install
-./install.sh --extension-id <EXTENSION_ID>
-```
+Chrome extension that displays your [Copilot.money](https://copilot.money) budget on checkout pages.
 
 ## Requirements
 
 - Node.js 20+
-- Chrome/Arc/Chromium browser
+- Chrome, Arc, or Chromium browser
 - macOS (native host uses Keychain)
 
-## Project Structure
+## Setup
 
-```
-copilot-overlay/
-├── manifest.json          # Chrome extension manifest (V3)
-├── src/
-│   ├── content.js         # Injected into checkout pages
-│   ├── background.js      # Service worker (auth, API calls)
-│   ├── overlay.js         # Budget overlay DOM creation
-│   ├── popup.js           # Extension popup UI
-│   ├── settings.js        # Settings page logic
-│   ├── site-configs.json  # Site selectors and categories
-│   └── api/
-│       └── copilot.js     # Copilot GraphQL API client
-├── styles/
-│   └── overlay.css        # Overlay styling
-├── native-host/
-│   ├── index.js           # Native messaging host entry
-│   ├── keychain.js        # macOS Keychain token storage
-│   ├── install.sh         # Host registration script
-│   └── login/
-│       └── playwright.js  # Browser-based login flow
-└── build.js               # Bundles src/ for Chrome
+### 1. Install the auth CLI
+
+```bash
+npm install -g @dakaneye-js/copilot-money-mcp
 ```
 
-## Configuration
+This provides the `copilot-auth` command for authentication.
 
-Click extension icon → Settings:
+### 2. Authenticate with Copilot
 
-| Setting | Description |
-|---------|-------------|
-| Auth Mode | `native` (recommended) or `api_key` |
-| Category | Default Copilot budget category |
-| Enabled | Toggle overlay on/off |
+```bash
+copilot-auth login
+```
 
-## Site Configs
+A browser window opens. Sign in to Copilot. The daemon starts automatically and keeps your token fresh.
 
-Edit `src/site-configs.json` to add sites:
+### 3. Build the extension
+
+```bash
+git clone https://github.com/dakaneye/copilot-overlay.git
+cd copilot-overlay
+npm install && npm run build
+```
+
+### 4. Load in Chrome
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (top right)
+3. Click **Load unpacked**
+4. Select the `copilot-overlay` folder
+5. Copy the **Extension ID** shown (32 characters)
+
+### 5. Install native host
+
+```bash
+cd native-host
+npm install
+./install.sh --extension-id=YOUR_EXTENSION_ID arc
+```
+
+Replace `arc` with `chrome` or `chromium` if using those browsers.
+
+### 6. Reload the extension
+
+Click the reload button on the extension card in `chrome://extensions`.
+
+## Usage
+
+Visit any supported checkout page. The overlay appears showing your budget for that category.
+
+Click the extension icon to see connection status.
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Overlay not showing | Check `copilot-auth status` - daemon should be running |
+| "Not authenticated" in popup | Run `copilot-auth login` |
+| Native host not found | Re-run `install.sh` with correct extension ID |
+| Token expired | Daemon auto-refreshes; if stuck, run `copilot-auth login` again |
+
+### Check auth status
+
+```bash
+copilot-auth status
+```
+
+Should show:
+```
+Status: Authenticated
+Email: your@email.com
+Token: expires in X minutes
+Daemon: Running
+```
+
+### View native host logs
+
+```bash
+tail -f /tmp/copilot-native-host.log
+```
+
+## Supported Sites
+
+| Site | Category |
+|------|----------|
+| amazon.com | Shopping |
+| target.com | Shopping |
+| walmart.com | Shopping |
+| bestbuy.com | Shopping |
+| costco.com | Shopping |
+| homedepot.com | Shopping |
+| etsy.com | Shopping |
+| apple.com | Shopping |
+| ubereats.com | Food & Drink |
+| doordash.com | Food & Drink |
+| instacart.com | Food & Drink |
+
+## Adding Sites
+
+Edit `src/site-configs.json`:
 
 ```json
 {
   "example.com": {
     "checkout": {
       "urlPatterns": ["/checkout", "/cart"],
-      "domIndicators": ["[data-testid='checkout-container']"]
+      "domIndicators": ["[data-testid='checkout']"]
     },
     "subtotal": {
-      "selectors": [".order-total", "#cart-subtotal"]
+      "selectors": [".order-total"]
     },
     "category": "Shopping"
   }
 }
 ```
 
-| Field | Purpose |
-|-------|---------|
-| `urlPatterns` | URL paths that indicate checkout page |
-| `domIndicators` | CSS selectors that must exist on page |
-| `selectors` | CSS selectors to find total/subtotal element |
-| `category` | Copilot budget category name |
+Then rebuild: `npm run build`
 
-## Native Host
+## Architecture
 
-Stores tokens in macOS Keychain. Communicates via Chrome Native Messaging.
-
-```bash
-# Install for specific browser
-./install.sh --extension-id <ID> --browser chrome  # or arc, chromium
-
-# Test manually
-echo '{"type":"STATUS"}' | node index.js
-
-# View logs
-tail -f /tmp/copilot-native-host.log
+```
+User runs: copilot-auth login (one time)
+              ↓
+        copilot-auth daemon (auto-refreshes token)
+              ↓
+        Keychain: copilot-money-auth/token
+              ↓
+Extension → Native Host → Keychain → Token → Copilot API → Budget → Overlay
 ```
 
-### Message Types
-
-| Type | Purpose |
-|------|---------|
-| `STATUS` | Returns `{type: "STATUS_OK", version}` |
-| `GET_TOKEN` | Returns cached token or `{needsLogin: true}` |
-| `LOGIN` | Opens browser for OAuth, captures token |
-
-## API
-
-`src/api/copilot.js` uses Copilot's GraphQL API:
-
-```javascript
-import { fetchCategoriesWithBudgets } from './api/copilot.js';
-
-const categories = await fetchCategoriesWithBudgets(token);
-// Returns: [{ name, icon, budgetAmount, spentAmount, rolloverAmount }]
-```
+The extension cannot access the keychain directly (Chrome sandbox), so it uses native messaging to communicate with a small Node.js host that reads the token.
 
 ## Development
 
@@ -129,33 +149,26 @@ npm run build    # Build once
 npm run watch    # Watch mode
 
 cd native-host
-npm test         # Run tests (66 tests)
+npm test         # Run tests (42 tests)
 ```
 
-## Supported Sites
+## Project Structure
 
-| Site | Category | Selector |
-|------|----------|----------|
-| amazon.com | Shopping | `#subtotals-marketplace-table .a-text-bold` |
-| target.com | Shopping | `[data-test='cart-summary-total']` |
-| walmart.com | Shopping | `[data-testid='total-price']` |
-| bestbuy.com | Shopping | `.order-summary__total` |
-| costco.com | Shopping | `#order-summary .value` |
-| homedepot.com | Shopping | `.cart-total__value` |
-| etsy.com | Shopping | `[data-selector='total-value']` |
-| apple.com | Shopping | `[data-autom='bagtotalvalue']` |
-| ubereats.com | Food & Drink | `[data-testid='cart-total']` |
-| doordash.com | Food & Drink | `[data-anchor-id='OrderCartTotal']` |
-| instacart.com | Food & Drink | `[data-testid='order-total']` |
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "not_configured" error | Open extension settings, verify auth mode |
-| Login window closes immediately | Token captured from cached session; clear Copilot cookies |
-| Overlay not showing | Check console for selector errors; site may need new config |
-| Native host not found | Re-run `install.sh` with correct extension ID |
+```
+copilot-overlay/
+├── manifest.json          # Chrome extension manifest (V3)
+├── src/
+│   ├── content.js         # Injected into checkout pages
+│   ├── background.js      # Service worker (API calls)
+│   ├── overlay.js         # Budget overlay DOM
+│   ├── popup.js           # Extension popup
+│   └── site-configs.json  # Site selectors
+├── native-host/
+│   ├── index.js           # Native messaging entry
+│   ├── keychain.js        # Keychain token access
+│   └── install.sh         # Host registration
+└── build.js               # Bundles src/ for Chrome
+```
 
 ## License
 

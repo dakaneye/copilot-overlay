@@ -12,7 +12,6 @@
     "test": "node --test test/constants.test.js test/keychain.test.js test/index.test.js test/install.test.js test/integration.test.js"
   },
   "dependencies": {
-    "keytar": "^7.9.0",
-    "playwright": "^1.40.0"
+    "keytar": "^7.9.0"
   }
 }
