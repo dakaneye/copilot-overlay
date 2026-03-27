@@ -1,5 +1,6 @@
 // native-host/test/integration.test.js
 // Integration tests for native messaging protocol
+// Skipped on CI - requires keytar native module and system keychain
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { spawn } from 'node:child_process';
@@ -8,6 +9,9 @@ import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const INDEX_PATH = join(__dirname, '..', 'index.js');
+
+// Skip integration tests on CI (keytar requires system keychain)
+const isCI = process.env.CI === 'true';
 
 /**
  * Send a native message and receive response
@@ -62,7 +66,7 @@ function sendNativeMessage(message) {
   });
 }
 
-describe('native messaging integration', () => {
+describe('native messaging integration', { skip: isCI }, () => {
   describe('STATUS message', () => {
     it('returns STATUS_OK with version', async () => {
       const response = await sendNativeMessage({ type: 'STATUS' });
