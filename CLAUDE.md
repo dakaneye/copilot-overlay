@@ -9,7 +9,7 @@
 npm run build
 ```
 
-### 2. Tests (must be 67/67 passing)
+### 2. Tests (must be 42/42 passing)
 ```bash
 cd native-host && npm test && cd ..
 ```
@@ -56,18 +56,15 @@ If grade is below A:
 | `src/background.js` | Service worker, API calls, caching |
 | `src/content.js` | Injected into checkout pages |
 | `src/site-configs.json` | Site selectors and categories |
-| `native-host/login/playwright.js` | Browser-based login flow |
+| `native-host/keychain.js` | Keychain token access |
 
 ## Common Tasks
 
 ### Adding site support
 Edit `src/site-configs.json` with selectors found via browser DevTools.
 
-### Debugging login issues
-Check `/tmp/copilot-native-host.log` for native host logs.
-
-### Testing native host manually
+### Debugging auth issues
 ```bash
-cd native-host
-echo '{"type":"STATUS"}' | node index.js
+copilot-auth status  # Check daemon and token status
+tail -f /tmp/copilot-native-host.log  # Native host logs
 ```

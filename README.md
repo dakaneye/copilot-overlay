@@ -2,6 +2,8 @@
 
 Chrome extension that displays your [Copilot.money](https://copilot.money) budget on checkout pages.
 
+> **Disclaimer:** This is an unofficial project and is not affiliated with Copilot Money. It uses Copilot's internal GraphQL API which may change without notice. Use at your own risk.
+
 ## Requirements
 
 - Node.js 20+
