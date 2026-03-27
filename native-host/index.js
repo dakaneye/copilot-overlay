@@ -3,8 +3,6 @@
 // Native messaging host entry point - handles stdio communication
 
 import { getToken, isExpired } from './keychain.js';
-import * as playwright from './login/playwright.js';
-import * as emailLink from './login/email-link.js';
 import { appendFileSync } from 'node:fs';
 
 const VERSION = '1.0.0';
@@ -70,57 +68,18 @@ async function handleGetToken() {
   const tokenData = await getToken();
 
   if (!tokenData) {
-    return { type: 'NO_TOKEN' };
+    return { type: 'NO_TOKEN', message: 'Run: copilot-auth login' };
   }
 
   if (isExpired(tokenData.expiresAt)) {
-    return { type: 'TOKEN_EXPIRED', expiresAt: tokenData.expiresAt };
+    return { type: 'TOKEN_EXPIRED', expiresAt: tokenData.expiresAt, message: 'Run: copilot-auth login' };
   }
 
   return { type: 'TOKEN', token: tokenData.token, expiresAt: tokenData.expiresAt };
 }
 
-async function handleLogin(message) {
-  const progress = (msg) => writeMessage(msg);
-
-  // Try Playwright first
-  let playwrightError = null;
-  if (await playwright.isAvailable()) {
-    try {
-      const result = await playwright.login(progress);
-      return { type: 'LOGIN_SUCCESS', token: result.token, expiresAt: result.expiresAt };
-    } catch (error) {
-      playwrightError = error.message;
-    }
-  }
-
-  // Fall back to email-link if configured
-  if (emailLink.isAvailable()) {
-    const email = message.email;
-    if (!email) {
-      const reason = playwrightError
-        ? `Playwright failed: ${playwrightError}`
-        : 'Playwright not available';
-      return { type: 'LOGIN_NEEDS_EMAIL', error: reason, message: 'Email required for fallback login' };
-    }
-    try {
-      const result = await emailLink.login(email, progress);
-      return { type: 'LOGIN_SUCCESS', token: result.token, expiresAt: result.expiresAt };
-    } catch (error) {
-      return { type: 'LOGIN_FAILED', error: `Email login failed: ${error.message}` };
-    }
-  }
-
-  // Neither method available
-  const reason = playwrightError
-    ? `Playwright failed: ${playwrightError}`
-    : 'Playwright not available';
-  return { type: 'LOGIN_FAILED', error: `${reason}. Email login not configured (set COPILOT_FIREBASE_API_KEY).` };
-}
-
 async function handleStatus() {
-  const playwrightAvailable = await playwright.isAvailable();
-  return { type: 'STATUS_OK', version: VERSION, playwrightAvailable };
+  return { type: 'STATUS_OK', version: VERSION };
 }
 
 async function main() {
@@ -133,9 +92,6 @@ async function main() {
     switch (message.type) {
       case 'GET_TOKEN':
         response = await handleGetToken();
-        break;
-      case 'LOGIN':
-        response = await handleLogin(message);
         break;
       case 'STATUS':
         response = await handleStatus();
