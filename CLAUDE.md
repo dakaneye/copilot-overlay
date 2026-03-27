@@ -9,7 +9,7 @@
 npm run build
 ```
 
-### 2. Tests (must be 42/42 passing)
+### 2. Tests (must be 43/43 passing)
 ```bash
 cd native-host && npm test && cd ..
 ```

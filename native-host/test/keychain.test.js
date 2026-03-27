@@ -1,19 +1,10 @@
 // native-host/test/keychain.test.js
-// Tests keychain module - some tests skip on CI due to keytar native dependency
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-
-const isCI = process.env.CI === 'true';
-
-// Import isExpired only if not on CI (keytar import will fail on CI)
-let isExpired;
-if (!isCI) {
-  const keychain = await import('../keychain.js');
-  isExpired = keychain.isExpired;
-}
+import { isExpired, isKeychainAvailable } from '../keychain.js';
 
 describe('keychain', () => {
-  describe('isExpired', { skip: isCI }, () => {
+  describe('isExpired', () => {
     it('returns true when expiresAt is in the past', () => {
       const pastTime = Date.now() - 1000;
       assert.strictEqual(isExpired(pastTime), true);
@@ -31,6 +22,13 @@ describe('keychain', () => {
 
     it('returns true for zero (invalid/corrupt timestamp)', () => {
       assert.strictEqual(isExpired(0), true);
+    });
+  });
+
+  describe('isKeychainAvailable', () => {
+    it('returns boolean', () => {
+      const result = isKeychainAvailable();
+      assert.strictEqual(typeof result, 'boolean');
     });
   });
 

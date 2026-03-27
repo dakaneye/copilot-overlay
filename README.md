@@ -154,7 +154,7 @@ npm run build    # Build once
 npm run watch    # Watch mode
 
 cd native-host
-npm test         # Run tests (42 tests)
+npm test         # Run tests (43 tests)
 ```
 
 ## Project Structure

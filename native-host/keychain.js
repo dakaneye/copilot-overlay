@@ -1,12 +1,22 @@
 // native-host/keychain.js
 // Keychain access - reads from copilot-auth daemon's shared keychain location
 
-import keytar from 'keytar';
-
 const SERVICE = 'copilot-money-auth';
 const ACCOUNT = 'token';
 
+// Dynamic import - keytar may not be available on all platforms
+let keytar = null;
+try {
+  keytar = (await import('keytar')).default;
+} catch {
+  // keytar unavailable (CI, missing native deps)
+}
+
 export async function getToken() {
+  if (!keytar) {
+    return null;
+  }
+
   const tokenJson = await keytar.getPassword(SERVICE, ACCOUNT);
 
   if (!tokenJson) {
@@ -30,4 +40,8 @@ export async function getToken() {
 
 export function isExpired(expiresAt) {
   return Date.now() >= expiresAt;
+}
+
+export function isKeychainAvailable() {
+  return keytar !== null;
 }

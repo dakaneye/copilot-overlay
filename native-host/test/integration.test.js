@@ -1,6 +1,5 @@
 // native-host/test/integration.test.js
 // Integration tests for native messaging protocol
-// Skipped on CI - requires keytar native module and system keychain
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { spawn } from 'node:child_process';
@@ -9,9 +8,6 @@ import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const INDEX_PATH = join(__dirname, '..', 'index.js');
-
-// Skip integration tests on CI (keytar requires system keychain)
-const isCI = process.env.CI === 'true';
 
 /**
  * Send a native message and receive response
@@ -66,7 +62,7 @@ function sendNativeMessage(message) {
   });
 }
 
-describe('native messaging integration', { skip: isCI }, () => {
+describe('native messaging integration', () => {
   describe('STATUS message', () => {
     it('returns STATUS_OK with version', async () => {
       const response = await sendNativeMessage({ type: 'STATUS' });
@@ -80,7 +76,7 @@ describe('native messaging integration', { skip: isCI }, () => {
     it('returns token status', async () => {
       const response = await sendNativeMessage({ type: 'GET_TOKEN' });
 
-      // Should be one of: TOKEN, NO_TOKEN, or TOKEN_EXPIRED
+      // TOKEN if keychain has token, NO_TOKEN if not (including CI)
       assert.ok(
         ['TOKEN', 'NO_TOKEN', 'TOKEN_EXPIRED'].includes(response.type),
         `Unexpected response type: ${response.type}`
