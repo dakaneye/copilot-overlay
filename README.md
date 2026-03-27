@@ -1,5 +1,8 @@
 # Copilot Budget Overlay
 
+[![CI](https://github.com/dakaneye/copilot-overlay/actions/workflows/ci.yml/badge.svg)](https://github.com/dakaneye/copilot-overlay/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Chrome extension that displays your [Copilot.money](https://copilot.money) budget on checkout pages.
 
 > **Disclaimer:** This is an unofficial project and is not affiliated with Copilot Money. It uses Copilot's internal GraphQL API which may change without notice. Use at your own risk.
