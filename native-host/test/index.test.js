@@ -1,11 +1,10 @@
 // native-host/test/index.test.js
-import { describe, it, mock, beforeEach } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
 describe('index', () => {
   describe('message protocol', () => {
     it('MAX_MESSAGE_SIZE is 1MB', async () => {
-      // Read the source to verify the constant
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
       assert.match(source, /MAX_MESSAGE_SIZE\s*=\s*1024\s*\*\s*1024/);
@@ -26,12 +25,6 @@ describe('index', () => {
       assert.match(source, /case\s+['"]GET_TOKEN['"]/);
     });
 
-    it('handles LOGIN message type', async () => {
-      const fs = await import('node:fs/promises');
-      const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
-      assert.match(source, /case\s+['"]LOGIN['"]/);
-    });
-
     it('handles STATUS message type', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
@@ -45,29 +38,46 @@ describe('index', () => {
     });
   });
 
-  describe('email-link integration', () => {
-    it('imports emailLink module', async () => {
+  describe('GET_TOKEN handler', () => {
+    it('calls getToken from keychain', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
-      assert.match(source, /import\s+\*\s+as\s+emailLink\s+from/);
+      assert.match(source, /import\s*\{\s*getToken/);
     });
 
-    it('calls emailLink.isAvailable in handleLogin', async () => {
+    it('returns NO_TOKEN when no token exists', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
-      assert.match(source, /emailLink\.isAvailable\(\)/);
+      assert.match(source, /NO_TOKEN/);
     });
 
-    it('calls emailLink.login when available and email provided', async () => {
+    it('returns TOKEN_EXPIRED when token expired', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
-      assert.match(source, /emailLink\.login\(/);
+      assert.match(source, /TOKEN_EXPIRED/);
     });
 
-    it('returns LOGIN_NEEDS_EMAIL when email not provided', async () => {
+    it('returns TOKEN with token and expiresAt', async () => {
       const fs = await import('node:fs/promises');
       const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
-      assert.match(source, /LOGIN_NEEDS_EMAIL/);
+      assert.match(source, /type:\s*['"]TOKEN['"]/);
+      assert.match(source, /token:\s*tokenData\.token/);
+      assert.match(source, /expiresAt:\s*tokenData\.expiresAt/);
+    });
+  });
+
+  describe('STATUS handler', () => {
+    it('returns STATUS_OK with version', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
+      assert.match(source, /STATUS_OK/);
+      assert.match(source, /version:\s*VERSION/);
+    });
+
+    it('has VERSION constant', async () => {
+      const fs = await import('node:fs/promises');
+      const source = await fs.readFile(new URL('../index.js', import.meta.url), 'utf8');
+      assert.match(source, /VERSION\s*=\s*['"][0-9]+\.[0-9]+\.[0-9]+['"]/);
     });
   });
 });

@@ -69,7 +69,6 @@ describe('native messaging integration', () => {
 
       assert.strictEqual(response.type, 'STATUS_OK');
       assert.strictEqual(response.version, '1.0.0');
-      assert.strictEqual(typeof response.playwrightAvailable, 'boolean');
     });
   });
 
