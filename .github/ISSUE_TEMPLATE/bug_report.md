@@ -17,8 +17,12 @@ What you expected to happen.
 
 **Environment**
 - OS: [e.g. macOS 14.0]
-- Browser: [e.g. Chrome 120, Arc]
-- Extension version: [e.g. 1.0.0]
+- Version: [e.g. 0.1.0]
+
+**Logs**
+```
+Paste relevant logs here
+```
 
 **Additional context**
-Any other relevant information (screenshots, console errors, etc).
+Any other relevant information.
