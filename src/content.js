@@ -109,9 +109,9 @@ async function requestBudget(domain, suggestedCategory) {
 }
 
 /**
- * Main logic
+ * Try to detect checkout and inject overlay. Returns true if successful.
  */
-async function main() {
+async function tryInject() {
   const siteConfig = getSiteConfig();
 
   let subtotalResult = null;
@@ -119,32 +119,32 @@ async function main() {
   let domain = window.location.hostname;
 
   if (siteConfig) {
-    // Known site
-    if (!isCheckoutPage(siteConfig.config)) {
-      return; // Not a checkout page
-    }
+    // Known site — check URL first (cheap), then DOM
+    const url = window.location.pathname;
+    const urlMatch = siteConfig.config.checkout.urlPatterns.some(pattern =>
+      url.includes(pattern)
+    );
+    if (!urlMatch) return false;
+
+    if (!isCheckoutPage(siteConfig.config)) return false;
+
     subtotalResult = findSubtotal(siteConfig.config);
     suggestedCategory = siteConfig.config.category;
   } else {
-    // Unknown site - try generic detection
     subtotalResult = findSubtotalGeneric();
   }
 
-  if (!subtotalResult) {
-    return; // No subtotal found
-  }
+  if (!subtotalResult) return false;
 
-  // Request budget data
   const budgetData = await requestBudget(domain, suggestedCategory);
 
   if (budgetData.error === 'not_configured' || budgetData.error === 'disabled') {
-    return; // Extension not configured or disabled
+    return false;
   }
 
-  // Inject overlay
   injectOverlay(subtotalResult.element, budgetData);
 
-  // Watch for changes
+  // Watch for subtotal changes
   const observer = new MutationObserver(async () => {
     const newSubtotal = siteConfig
       ? findSubtotal(siteConfig.config)
@@ -158,7 +158,6 @@ async function main() {
     }
   });
 
-  // Observe the subtotal element's parent for changes
   const parent = subtotalResult.element.parentElement;
   if (parent) {
     observer.observe(parent, {
@@ -166,6 +165,23 @@ async function main() {
       subtree: true,
       characterData: true,
     });
+  }
+
+  return true;
+}
+
+/**
+ * Main logic — retries for SPAs where checkout DOM loads after content script
+ */
+async function main() {
+  if (await tryInject()) return;
+
+  // Retry with increasing delays for SPA content to render
+  const delays = [500, 1000, 2000, 4000];
+  for (const delay of delays) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+    if (document.getElementById('copilot-budget-overlay')) return;
+    if (await tryInject()) return;
   }
 }
 

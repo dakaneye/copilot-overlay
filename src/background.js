@@ -27,8 +27,8 @@ let nativeTokenExpiresAt = 0;
  * Get stored tokens - refresh from native host if not expired
  */
 async function getTokens() {
-  // Try to refresh from native host if we have a non-expired token
-  if (nativeTokenExpiresAt > Date.now()) {
+  // Refresh from native host if cached token is missing or expired
+  if (nativeTokenExpiresAt <= Date.now()) {
     try {
       const response = await sendNativeMessage({ type: 'GET_TOKEN' });
       if (response.type === 'TOKEN') {
@@ -81,7 +81,7 @@ async function initAuth() {
       }
     }
   } catch {
-    // Native host not available or no token - user should run copilot-auth login
+    // Native host not available - user should run copilot-auth login
   }
 }
 

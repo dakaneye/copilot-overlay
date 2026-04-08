@@ -42,7 +42,7 @@ if [[ ! "$EXTENSION_ID" =~ ^[a-p]{32}$ ]]; then
 fi
 
 case "$BROWSER" in
-  arc)     MANIFEST_DIR="$HOME/Library/Application Support/Arc/User Data/NativeMessagingHosts" ;;
+  arc)     MANIFEST_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts" ;; # Arc reads from Chrome's path
   chrome)  MANIFEST_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts" ;;
   chromium) MANIFEST_DIR="$HOME/Library/Application Support/Chromium/NativeMessagingHosts" ;;
 esac
