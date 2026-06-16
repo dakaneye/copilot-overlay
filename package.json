@@ -8,7 +8,7 @@
     "watch": "node build.js --watch"
   },
   "devDependencies": {
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "playwright": "^1.60.0"
   }
 }
